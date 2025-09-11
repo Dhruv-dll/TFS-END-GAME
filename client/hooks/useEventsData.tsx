@@ -115,7 +115,10 @@ export function useEventsData() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch("/api/events", { signal: controller.signal, headers: { Accept: "application/json" } });
+      const response = await fetch("/api/events", {
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
       clearTimeout(timeoutId);
       if (response.ok) {
         const result = await response.json();
@@ -126,7 +129,10 @@ export function useEventsData() {
       }
       throw new Error("Server request failed");
     } catch (error) {
-      console.warn("Failed to load events from server, using default data:", error?.message || "Unknown error");
+      console.warn(
+        "Failed to load events from server, using default data:",
+        error?.message || "Unknown error",
+      );
       return false;
     }
   };
@@ -137,7 +143,10 @@ export function useEventsData() {
       const localLastModified = eventsConfig.lastModified || 0;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(`/api/events/sync?lastModified=${localLastModified}`, { signal: controller.signal, headers: { Accept: "application/json" } });
+      const response = await fetch(
+        `/api/events/sync?lastModified=${localLastModified}`,
+        { signal: controller.signal, headers: { Accept: "application/json" } },
+      );
       clearTimeout(timeoutId);
       if (response.ok) {
         const result = await response.json();
@@ -147,8 +156,15 @@ export function useEventsData() {
         }
       }
     } catch (error) {
-      if (error?.message && !error.message.includes("fetch") && !error.message.includes("timeout")) {
-        console.warn("Failed to check server sync:", error?.message || "Unknown error");
+      if (
+        error?.message &&
+        !error.message.includes("fetch") &&
+        !error.message.includes("timeout")
+      ) {
+        console.warn(
+          "Failed to check server sync:",
+          error?.message || "Unknown error",
+        );
       }
     }
   };
@@ -178,7 +194,11 @@ export function useEventsData() {
     };
 
     window.addEventListener("tfs-events-updated", handleCustomStorageChange);
-    return () => window.removeEventListener("tfs-events-updated", handleCustomStorageChange);
+    return () =>
+      window.removeEventListener(
+        "tfs-events-updated",
+        handleCustomStorageChange,
+      );
   }, []);
 
   // Helper function to get title from ID

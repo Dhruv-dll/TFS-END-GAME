@@ -88,7 +88,8 @@ const defaultConfig: LuminariesConfig = {
         "Personal Finance",
         "Data Analytics",
       ],
-      quote: "Empowering students with data-driven financial insights and sustainable investment practices.",
+      quote:
+        "Empowering students with data-driven financial insights and sustainable investment practices.",
     },
     {
       id: "vinayak-thool",
@@ -219,7 +220,11 @@ const defaultConfig: LuminariesConfig = {
   lastModified: Date.now(),
 };
 
-const LUMINARIES_DATA_PATH = path.join(process.cwd(), "data", "luminaries.json");
+const LUMINARIES_DATA_PATH = path.join(
+  process.cwd(),
+  "data",
+  "luminaries.json",
+);
 
 async function ensureDataDirectory() {
   const dir = path.dirname(LUMINARIES_DATA_PATH);
@@ -250,36 +255,69 @@ async function saveLuminariesData(config: LuminariesConfig): Promise<void> {
   // Try to commit to GitHub for global persistence (optional)
   try {
     const { commitFileToGitHub } = await import("../utils/git");
-    const result = await commitFileToGitHub("data/luminaries.json", content, "chore: update luminaries.json via admin") as any;
+    const result = (await commitFileToGitHub(
+      "data/luminaries.json",
+      content,
+      "chore: update luminaries.json via admin",
+    )) as any;
     if (!result.success) {
       console.warn("GitHub commit for luminaries.json failed:", result.error);
     } else {
       console.log("Committed luminaries.json to GitHub:", result.url);
     }
   } catch (gitErr) {
-    console.warn("Failed to commit luminaries.json to GitHub:", (gitErr as Error).message || gitErr);
+    console.warn(
+      "Failed to commit luminaries.json to GitHub:",
+      (gitErr as Error).message || gitErr,
+    );
   }
 }
 
 export const getLuminariesData: RequestHandler = async (_req, res) => {
   try {
     const config = await loadLuminariesData();
-    res.json({ success: true, data: config, timestamp: new Date().toISOString() });
+    res.json({
+      success: true,
+      data: config,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to load luminaries data", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to load luminaries data",
+        message: (error as Error).message,
+      });
   }
 };
 
 export const updateLuminariesData: RequestHandler = async (req, res) => {
   try {
     const { data } = req.body;
-    if (!data || !Array.isArray(data.faculty) || !Array.isArray(data.leadership)) {
-      return res.status(400).json({ success: false, error: "Invalid luminaries configuration" });
+    if (
+      !data ||
+      !Array.isArray(data.faculty) ||
+      !Array.isArray(data.leadership)
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid luminaries configuration" });
     }
     await saveLuminariesData(data);
-    res.json({ success: true, message: "Luminaries configuration updated successfully", timestamp: new Date().toISOString() });
+    res.json({
+      success: true,
+      message: "Luminaries configuration updated successfully",
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to update luminaries data", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to update luminaries data",
+        message: (error as Error).message,
+      });
   }
 };
 
@@ -289,8 +327,19 @@ export const checkLuminariesSync: RequestHandler = async (req, res) => {
     const serverConfig = await loadLuminariesData();
     const clientLast = lastModified ? parseInt(lastModified as string) : 0;
     const needsUpdate = serverConfig.lastModified > clientLast;
-    res.json({ success: true, needsUpdate, serverLastModified: serverConfig.lastModified, clientLastModified: clientLast });
+    res.json({
+      success: true,
+      needsUpdate,
+      serverLastModified: serverConfig.lastModified,
+      clientLastModified: clientLast,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to check luminaries sync", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to check luminaries sync",
+        message: (error as Error).message,
+      });
   }
 };

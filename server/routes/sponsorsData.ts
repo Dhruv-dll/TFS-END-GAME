@@ -22,8 +22,7 @@ const defaultConfig: SponsorsConfig = {
     {
       id: "citizen-cooperative-bank",
       name: "Citizen Cooperative Bank",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2Fec784fa823e24e5b9b1285f4ba0a99fb",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2Fec784fa823e24e5b9b1285f4ba0a99fb",
       industry: "Banking",
       description:
         "Cooperative banking institution dedicated to financial inclusion and community development.",
@@ -33,8 +32,7 @@ const defaultConfig: SponsorsConfig = {
     {
       id: "saint-gobain",
       name: "Saint Gobain (through Mahantesh Associates)",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F5b52ce39d6834f09a442954d4ab0e362",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F5b52ce39d6834f09a442954d4ab0e362",
       industry: "Manufacturing",
       description:
         "Global leader in sustainable construction materials, partnering through Mahantesh Associates to enhance industry exposure.",
@@ -44,8 +42,7 @@ const defaultConfig: SponsorsConfig = {
     {
       id: "zest-global-education",
       name: "Zest Global Education",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F8d448a7548c345c0b5060392a99881c7",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F8d448a7548c345c0b5060392a99881c7",
       industry: "Education",
       description:
         "International education consultancy providing global opportunities and career guidance to students.",
@@ -55,8 +52,7 @@ const defaultConfig: SponsorsConfig = {
     {
       id: "iqas",
       name: "IQAS",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F6d57193e366e4d44b95dae677d4162dc",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F6d57193e366e4d44b95dae677d4162dc",
       industry: "Quality Assurance",
       description:
         "Quality assurance and certification services provider supporting academic excellence standards.",
@@ -98,23 +94,40 @@ async function saveSponsorsData(config: SponsorsConfig): Promise<void> {
   // Try to commit to GitHub for global persistence (optional)
   try {
     const { commitFileToGitHub } = await import("../utils/git");
-    const result = await commitFileToGitHub("data/sponsors.json", content, "chore: update sponsors.json via admin") as any;
+    const result = (await commitFileToGitHub(
+      "data/sponsors.json",
+      content,
+      "chore: update sponsors.json via admin",
+    )) as any;
     if (!result.success) {
       console.warn("GitHub commit for sponsors.json failed:", result.error);
     } else {
       console.log("Committed sponsors.json to GitHub:", result.url);
     }
   } catch (gitErr) {
-    console.warn("Failed to commit sponsors.json to GitHub:", (gitErr as Error).message || gitErr);
+    console.warn(
+      "Failed to commit sponsors.json to GitHub:",
+      (gitErr as Error).message || gitErr,
+    );
   }
 }
 
 export const getSponsorsData: RequestHandler = async (_req, res) => {
   try {
     const config = await loadSponsorsData();
-    res.json({ success: true, data: config, timestamp: new Date().toISOString() });
+    res.json({
+      success: true,
+      data: config,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to load sponsors data", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to load sponsors data",
+        message: (error as Error).message,
+      });
   }
 };
 
@@ -122,12 +135,24 @@ export const updateSponsorsData: RequestHandler = async (req, res) => {
   try {
     const { data } = req.body;
     if (!data || !Array.isArray(data.sponsors)) {
-      return res.status(400).json({ success: false, error: "Invalid sponsors configuration" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid sponsors configuration" });
     }
     await saveSponsorsData(data);
-    res.json({ success: true, message: "Sponsors configuration updated successfully", timestamp: new Date().toISOString() });
+    res.json({
+      success: true,
+      message: "Sponsors configuration updated successfully",
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to update sponsors data", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to update sponsors data",
+        message: (error as Error).message,
+      });
   }
 };
 
@@ -137,8 +162,19 @@ export const checkSponsorsSync: RequestHandler = async (req, res) => {
     const serverConfig = await loadSponsorsData();
     const clientLast = lastModified ? parseInt(lastModified as string) : 0;
     const needsUpdate = serverConfig.lastModified > clientLast;
-    res.json({ success: true, needsUpdate, serverLastModified: serverConfig.lastModified, clientLastModified: clientLast });
+    res.json({
+      success: true,
+      needsUpdate,
+      serverLastModified: serverConfig.lastModified,
+      clientLastModified: clientLast,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to check sponsors sync", message: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: "Failed to check sponsors sync",
+        message: (error as Error).message,
+      });
   }
 };

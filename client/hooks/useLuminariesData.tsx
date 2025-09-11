@@ -86,7 +86,8 @@ const defaultConfig: LuminariesConfig = {
         "Personal Finance",
         "Data Analytics",
       ],
-      quote: "Empowering students with data-driven financial insights and sustainable investment practices.",
+      quote:
+        "Empowering students with data-driven financial insights and sustainable investment practices.",
     },
     {
       id: "vinayak-thool",
@@ -223,11 +224,18 @@ export function useLuminariesData() {
 
   // Prefer server as single source of truth; remove localStorage usage
 
-  const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 8000) => {
+  const fetchWithTimeout = async (
+    input: RequestInfo,
+    init?: RequestInit,
+    timeout = 8000,
+  ) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-      const res = await fetch(input, { ...(init || {}), signal: controller.signal });
+      const res = await fetch(input, {
+        ...(init || {}),
+        signal: controller.signal,
+      });
       clearTimeout(id);
       return res;
     } catch (e) {
@@ -255,7 +263,11 @@ export function useLuminariesData() {
   const checkSync = async () => {
     try {
       const localLast = config.lastModified || 0;
-      const res = await fetchWithTimeout(`/api/luminaries/sync?lastModified=${localLast}`, undefined, 5000);
+      const res = await fetchWithTimeout(
+        `/api/luminaries/sync?lastModified=${localLast}`,
+        undefined,
+        5000,
+      );
       if (res.ok) {
         const result = await res.json();
         if (result.success && result.needsUpdate) {
@@ -285,7 +297,10 @@ export function useLuminariesData() {
         "/api/luminaries",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify({ data: next }),
         },
         10000,
@@ -296,15 +311,25 @@ export function useLuminariesData() {
 
   useEffect(() => {
     const onCustom = () => loadFromServer();
-    window.addEventListener("tfs-luminaries-updated", onCustom as EventListener);
-    return () => window.removeEventListener("tfs-luminaries-updated", onCustom as EventListener);
+    window.addEventListener(
+      "tfs-luminaries-updated",
+      onCustom as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "tfs-luminaries-updated",
+        onCustom as EventListener,
+      );
   }, []);
 
   const faculty = useMemo(() => config.faculty, [config.faculty]);
   const leadership = useMemo(() => config.leadership, [config.leadership]);
 
   const addMember = async (group: "faculty" | "leadership", m: TeamMember) => {
-    const member = { ...m, isLeadership: group === "leadership" ? true : m.isLeadership };
+    const member = {
+      ...m,
+      isLeadership: group === "leadership" ? true : m.isLeadership,
+    };
     const next: LuminariesConfig = {
       ...config,
       [group]: [...config[group], member],
@@ -319,7 +344,9 @@ export function useLuminariesData() {
   ) => {
     const next: LuminariesConfig = {
       ...config,
-      [group]: config[group].map((tm) => (tm.id === id ? { ...tm, ...patch } : tm)),
+      [group]: config[group].map((tm) =>
+        tm.id === id ? { ...tm, ...patch } : tm,
+      ),
     } as LuminariesConfig;
     await saveConfig(next);
   };
@@ -332,5 +359,13 @@ export function useLuminariesData() {
     await saveConfig(next);
   };
 
-  return { loading, faculty, leadership, addMember, updateMember, removeMember, rawConfig: config };
+  return {
+    loading,
+    faculty,
+    leadership,
+    addMember,
+    updateMember,
+    removeMember,
+    rawConfig: config,
+  };
 }

@@ -4,7 +4,9 @@ const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
 if (!GITHUB_TOKEN) {
-  console.warn("GITHUB_TOKEN is not set - automatic commits to GitHub will be disabled");
+  console.warn(
+    "GITHUB_TOKEN is not set - automatic commits to GitHub will be disabled",
+  );
 }
 
 async function getFileSha(path: string): Promise<string | null> {
@@ -13,7 +15,10 @@ async function getFileSha(path: string): Promise<string | null> {
     path,
   )}?ref=${encodeURIComponent(GITHUB_BRANCH)}`;
   const res = await fetch(url, {
-    headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      Accept: "application/vnd.github+json",
+    },
   });
   if (res.status === 200) {
     const json = await res.json();
@@ -27,7 +32,8 @@ export async function commitFileToGitHub(
   content: string,
   message: string,
 ): Promise<{ success: boolean; url?: string; error?: string }> {
-  if (!GITHUB_TOKEN) return { success: false, error: "GITHUB_TOKEN not configured" };
+  if (!GITHUB_TOKEN)
+    return { success: false, error: "GITHUB_TOKEN not configured" };
 
   const existingSha = await getFileSha(path);
 

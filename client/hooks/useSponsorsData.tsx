@@ -20,8 +20,7 @@ const defaultSponsors: SponsorsConfig = {
     {
       id: "citizen-cooperative-bank",
       name: "Citizen Cooperative Bank",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2Fec784fa823e24e5b9b1285f4ba0a99fb",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2Fec784fa823e24e5b9b1285f4ba0a99fb",
       industry: "Banking",
       description:
         "Cooperative banking institution dedicated to financial inclusion and community development.",
@@ -31,8 +30,7 @@ const defaultSponsors: SponsorsConfig = {
     {
       id: "saint-gobain",
       name: "Saint Gobain (through Mahantesh Associates)",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F5b52ce39d6834f09a442954d4ab0e362",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F5b52ce39d6834f09a442954d4ab0e362",
       industry: "Manufacturing",
       description:
         "Global leader in sustainable construction materials, partnering through Mahantesh Associates to enhance industry exposure.",
@@ -42,8 +40,7 @@ const defaultSponsors: SponsorsConfig = {
     {
       id: "zest-global-education",
       name: "Zest Global Education",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F8d448a7548c345c0b5060392a99881c7",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F8d448a7548c345c0b5060392a99881c7",
       industry: "Education",
       description:
         "International education consultancy providing global opportunities and career guidance to students.",
@@ -53,8 +50,7 @@ const defaultSponsors: SponsorsConfig = {
     {
       id: "iqas",
       name: "IQAS",
-      logo:
-        "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F6d57193e366e4d44b95dae677d4162dc",
+      logo: "https://cdn.builder.io/api/v1/image/assets%2Fb448f3665916406e992f77bf5e7d711e%2F6d57193e366e4d44b95dae677d4162dc",
       industry: "Quality Assurance",
       description:
         "Quality assurance and certification services provider supporting academic excellence standards.",
@@ -71,11 +67,18 @@ export function useSponsorsData() {
 
   // Prefer server as single source of truth; remove localStorage usage
 
-  const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 8000) => {
+  const fetchWithTimeout = async (
+    input: RequestInfo,
+    init?: RequestInit,
+    timeout = 8000,
+  ) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-      const res = await fetch(input, { ...(init || {}), signal: controller.signal });
+      const res = await fetch(input, {
+        ...(init || {}),
+        signal: controller.signal,
+      });
       clearTimeout(id);
       return res;
     } catch (e) {
@@ -103,7 +106,11 @@ export function useSponsorsData() {
   const checkSync = async () => {
     try {
       const localLast = config.lastModified || 0;
-      const res = await fetchWithTimeout(`/api/sponsors/sync?lastModified=${localLast}`, undefined, 5000);
+      const res = await fetchWithTimeout(
+        `/api/sponsors/sync?lastModified=${localLast}`,
+        undefined,
+        5000,
+      );
       if (res.ok) {
         const result = await res.json();
         if (result.success && result.needsUpdate) {
@@ -136,7 +143,10 @@ export function useSponsorsData() {
         "/api/sponsors",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify({ data: next }),
         },
         10000,
@@ -150,7 +160,11 @@ export function useSponsorsData() {
   useEffect(() => {
     const onCustom = () => loadFromServer();
     window.addEventListener("tfs-sponsors-updated", onCustom as EventListener);
-    return () => window.removeEventListener("tfs-sponsors-updated", onCustom as EventListener);
+    return () =>
+      window.removeEventListener(
+        "tfs-sponsors-updated",
+        onCustom as EventListener,
+      );
   }, []);
 
   const sponsors = useMemo(() => config.sponsors, [config.sponsors]);
@@ -163,15 +177,27 @@ export function useSponsorsData() {
   const updateSponsor = async (id: string, patch: Partial<SponsorItem>) => {
     const next = {
       ...config,
-      sponsors: config.sponsors.map((sp) => (sp.id === id ? { ...sp, ...patch } : sp)),
+      sponsors: config.sponsors.map((sp) =>
+        sp.id === id ? { ...sp, ...patch } : sp,
+      ),
     };
     await saveConfig(next);
   };
 
   const removeSponsor = async (id: string) => {
-    const next = { ...config, sponsors: config.sponsors.filter((sp) => sp.id !== id) };
+    const next = {
+      ...config,
+      sponsors: config.sponsors.filter((sp) => sp.id !== id),
+    };
     await saveConfig(next);
   };
 
-  return { loading, sponsors, addSponsor, updateSponsor, removeSponsor, rawConfig: config };
+  return {
+    loading,
+    sponsors,
+    addSponsor,
+    updateSponsor,
+    removeSponsor,
+    rawConfig: config,
+  };
 }
