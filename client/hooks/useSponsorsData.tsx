@@ -102,7 +102,7 @@ export function useSponsorsData() {
 
   const checkSync = async () => {
     try {
-      const localLast = JSON.parse(localStorage.getItem("tfs-sponsors-config") || "{}").lastModified || 0;
+      const localLast = config.lastModified || 0;
       const res = await fetchWithTimeout(`/api/sponsors/sync?lastModified=${localLast}`, undefined, 5000);
       if (res.ok) {
         const result = await res.json();
@@ -117,13 +117,8 @@ export function useSponsorsData() {
 
   useEffect(() => {
     const init = async () => {
-      const fromLocal = loadFromLocal();
-      if (!fromLocal) {
-        const fromServer = await loadFromServer();
-        if (!fromServer) setConfig(defaultSponsors);
-      } else {
-        await checkSync();
-      }
+      const fromServer = await loadFromServer();
+      if (!fromServer) setConfig(defaultSponsors);
       setLoading(false);
     };
     init();
@@ -136,7 +131,6 @@ export function useSponsorsData() {
   const saveConfig = async (next: SponsorsConfig) => {
     next.lastModified = Date.now();
     setConfig(next);
-    localStorage.setItem("tfs-sponsors-config", JSON.stringify(next));
     try {
       await fetchWithTimeout(
         "/api/sponsors",
@@ -154,18 +148,9 @@ export function useSponsorsData() {
   };
 
   useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "tfs-sponsors-config" && e.newValue) {
-        try { setConfig(JSON.parse(e.newValue)); } catch {}
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    const onCustom = () => loadFromLocal();
+    const onCustom = () => loadFromServer();
     window.addEventListener("tfs-sponsors-updated", onCustom as EventListener);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("tfs-sponsors-updated", onCustom as EventListener);
-    };
+    return () => window.removeEventListener("tfs-sponsors-updated", onCustom as EventListener);
   }, []);
 
   const sponsors = useMemo(() => config.sponsors, [config.sponsors]);
