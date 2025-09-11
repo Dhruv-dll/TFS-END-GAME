@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 const GITHUB_OWNER = process.env.GITHUB_OWNER || "Dhruv-dll";
 const GITHUB_REPO = process.env.GITHUB_REPO || "TFS_Final_3";
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
