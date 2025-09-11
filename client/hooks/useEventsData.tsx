@@ -108,22 +108,7 @@ export function useEventsData() {
     };
   }, []);
 
-  // Function to load events config from localStorage or fallback
-  const loadEventsConfig = () => {
-    const savedConfig = localStorage.getItem("tfs-events-config");
-    if (savedConfig) {
-      try {
-        const parsedConfig = JSON.parse(savedConfig);
-        setEventsConfig(parsedConfig);
-        return true;
-      } catch (error) {
-        console.warn("Failed to parse saved events config, using default");
-        setEventsConfig(defaultConfig);
-        return false;
-      }
-    }
-    return false;
-  };
+  // Previously used localStorage; now prefer server as single source of truth
 
   // Load events data with server sync
   const loadEventsFromServer = async () => {
