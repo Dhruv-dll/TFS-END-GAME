@@ -94,8 +94,22 @@ async function saveEventsData(config: EventsConfig): Promise<void> {
   try {
     await ensureDataDirectory();
     config.lastModified = Date.now();
-    await fs.writeFile(EVENTS_DATA_PATH, JSON.stringify(config, null, 2));
+    const content = JSON.stringify(config, null, 2);
+    await fs.writeFile(EVENTS_DATA_PATH, content);
     console.log("Events data saved successfully");
+
+    // Try to commit to GitHub for global persistence (optional)
+    try {
+      const { commitFileToGitHub } = await import("../utils/git");
+      const result = await commitFileToGitHub("data/events.json", content, "chore: update events.json via admin") as any;
+      if (!result.success) {
+        console.warn("GitHub commit for events.json failed:", result.error);
+      } else {
+        console.log("Committed events.json to GitHub:", result.url);
+      }
+    } catch (gitErr) {
+      console.warn("Failed to commit events.json to GitHub:", (gitErr as Error).message || gitErr);
+    }
   } catch (error) {
     console.error("Failed to save events data:", error);
     throw error;
