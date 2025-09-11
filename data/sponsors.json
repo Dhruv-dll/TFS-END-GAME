@@ -35,15 +35,7 @@
       "description": "Quality assurance and certification services provider supporting academic excellence standards.",
       "isActive": false,
       "website": "https://iqas.co.in"
-    },
-    {
-      "id": "sponsor-1757600747944",
-      "name": "NVIDIA",
-      "logo": "",
-      "industry": "ASJdbna",
-      "description": "",
-      "isActive": true
     }
   ],
-  "lastModified": 1757600748534
+  "lastModified": 1757601370304
 }
