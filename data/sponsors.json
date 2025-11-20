@@ -36,15 +36,7 @@
       "isActive": false,
       "website": "https://iqas.co.in"
     },
-    {
-      "id": "sponsor-1763544863811",
-      "name": "ICICI Bank ",
-      "logo": "https://logowik.com/content/uploads/images/icici-bank4093.logowik.com.webp",
-      "industry": "Banking",
-      "description": "",
-      "website": "https://www.icici.bank.in/",
-      "isActive": true
-    }
+  
   ],
   "lastModified": 1763544866926
 }
