@@ -218,7 +218,7 @@ class FinnhubMarketDataService {
       const requestStartTime = Date.now();
 
       try {
-        fetchWithTimeout = new Promise<Response>((resolve, reject) => {
+        fetchWithTimeout = new Promise<Response>((resolve) => {
           try {
             const controller = new AbortController();
 
