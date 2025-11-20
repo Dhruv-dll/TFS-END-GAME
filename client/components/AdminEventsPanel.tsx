@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Save, Settings, Calendar, Users, Trophy } from "lucide-react";
+import { Plus, X, Save, Settings, Calendar, Users, Trophy, Mic } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useEventsData } from "../hooks/useEventsData";
 import { useSponsorsData, SponsorItem } from "../hooks/useSponsorsData";
 import { useLuminariesData, TeamMember as LuminaryMember } from "../hooks/useLuminariesData";
+import { useConclaveSessionsData, Speaker, ConclaveSession } from "../hooks/useConclaveSessionsData";
 import AdminLuminariesPanel from "./AdminLuminariesPanel";
 
 interface AdminEventsPanelProps {
@@ -17,7 +18,7 @@ export default function AdminEventsPanel({
   isOpen,
   onClose,
 }: AdminEventsPanelProps) {
-  const [activeSection, setActiveSection] = useState<"events" | "sponsors" | "luminaries">(
+  const [activeSection, setActiveSection] = useState<"events" | "sponsors" | "luminaries" | "sessions">(
     "events",
   );
 
