@@ -67,10 +67,10 @@ export default function Index() {
     };
   }, []);
 
-  // Admin panel keyboard shortcut (Ctrl+Shift+A)
+  // Admin panel keyboard shortcut (Ctrl+Alt+A)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key === "A") {
+      if (event.ctrlKey && event.altKey && event.key === "A") {
         event.preventDefault();
         setShowLoginPanel(true);
       }
