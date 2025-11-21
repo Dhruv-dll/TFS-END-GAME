@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { useFinsightMagazines, Magazine as SavedMagazine } from "../hooks/useFinsightMagazines";
 
 interface Magazine {
   id: string;
@@ -33,10 +34,11 @@ interface Magazine {
   readTime: string;
   categories: string[];
   highlights: string[];
+  link?: string;
 }
 
-// Sample magazine data
-const magazines: Magazine[] = [
+// Default magazine data
+const defaultMagazines: Magazine[] = [
   {
     id: "vol-1",
     title: "Finsight Magazine Vol. 1",
@@ -66,8 +68,19 @@ export default function OptimizedFinsightSection() {
     null,
   );
 
-  const featuredMagazine =
-    magazines.find((mag) => mag.featured) || magazines[0];
+  const { magazines: savedMagazines } = useFinsightMagazines();
+
+  // Combine saved magazines with default magazines, mark first saved as featured if it exists
+  const allMagazines: Magazine[] = savedMagazines.length > 0
+    ? savedMagazines.map((mag, idx) => ({
+        ...mag,
+        date: new Date().getFullYear().toString(),
+        coverImage: mag.cover,
+        featured: idx === 0,
+      }))
+    : defaultMagazines;
+
+  const featuredMagazine = allMagazines.find((mag) => mag.featured) || allMagazines[0];
 
   const MagazineCard = ({
     magazine,
