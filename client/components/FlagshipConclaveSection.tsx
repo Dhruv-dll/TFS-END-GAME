@@ -42,20 +42,22 @@ export default function FlagshipConclaveSection() {
 
       <div className="container mx-auto relative z-10" ref={containerRef}>
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
-            FLAGSHIP <span className="text-finance-teal">CONCLAVE</span>
-          </h2>
-          <div className="w-32 h-1 bg-gradient-to-r from-finance-teal to-finance-mint mx-auto mb-6" />
-          <p className="text-xl text-foreground/80 max-w-3xl mx-auto">
-            Exclusive sessions featuring industry experts, thought leaders, and innovators shaping the future of finance
-          </p>
-        </motion.div>
+        {sessions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
+              FLAGSHIP <span className="text-finance-teal">CONCLAVE</span>
+            </h2>
+            <div className="w-32 h-1 bg-gradient-to-r from-finance-teal to-finance-mint mx-auto mb-6" />
+            <p className="text-xl text-foreground/80 max-w-3xl mx-auto">
+              Exclusive sessions featuring industry experts, thought leaders, and innovators shaping the future of finance
+            </p>
+          </motion.div>
+        )}
 
         {/* Sessions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
