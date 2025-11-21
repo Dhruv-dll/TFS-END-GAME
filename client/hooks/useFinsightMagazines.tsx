@@ -186,11 +186,14 @@ export function useFinsightMagazines() {
     return newMagazine;
   };
 
-  const updateMagazine = async (magazineId: string, updates: Partial<Magazine>) => {
+  const updateMagazine = async (
+    magazineId: string,
+    updates: Partial<Magazine>,
+  ) => {
     const newConfig = {
       ...config,
       magazines: config.magazines.map((m) =>
-        m.id === magazineId ? { ...m, ...updates } : m
+        m.id === magazineId ? { ...m, ...updates } : m,
       ),
     };
     await saveConfig(newConfig);

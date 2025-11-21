@@ -180,7 +180,9 @@ export function useConclaveSessionsData() {
     }
   };
 
-  const addSession = async (session: Omit<ConclaveSession, "id" | "createdAt">) => {
+  const addSession = async (
+    session: Omit<ConclaveSession, "id" | "createdAt">,
+  ) => {
     const newSession: ConclaveSession = {
       ...session,
       id: `session-${Date.now()}`,
@@ -215,7 +217,10 @@ export function useConclaveSessionsData() {
     await saveConfig(newConfig);
   };
 
-  const addSpeaker = async (sessionId: string, speaker: Omit<Speaker, "id">) => {
+  const addSpeaker = async (
+    sessionId: string,
+    speaker: Omit<Speaker, "id">,
+  ) => {
     const newSpeaker: Speaker = {
       ...speaker,
       id: `speaker-${Date.now()}`,

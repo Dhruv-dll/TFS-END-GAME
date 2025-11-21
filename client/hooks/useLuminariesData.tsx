@@ -335,7 +335,10 @@ export function useLuminariesData() {
     }
   };
 
-  const addMember = async (group: "faculty" | "leadership", member: TeamMember) => {
+  const addMember = async (
+    group: "faculty" | "leadership",
+    member: TeamMember,
+  ) => {
     const next: LuminariesConfig = {
       ...config,
       [group]: [...config[group], member],
