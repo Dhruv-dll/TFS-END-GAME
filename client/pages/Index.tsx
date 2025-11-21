@@ -7,6 +7,7 @@ import MarketDataErrorBoundary, {
   NetworkStatusIndicator,
 } from "../components/MarketDataErrorBoundary";
 import MobileOptimizedEventsSection from "../components/MobileOptimizedEventsSection";
+import FlagshipConclaveSection from "../components/FlagshipConclaveSection";
 import AboutSection from "../components/AboutSection";
 import AboutBAFSection from "../components/AboutBAFSection";
 import ContactSection from "../components/ContactSection";
@@ -67,11 +68,12 @@ export default function Index() {
     };
   }, []);
 
-  // Admin panel keyboard shortcut (Ctrl+Shift+A)
+  // Admin panel keyboard shortcut (Ctrl+Alt+A)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key === "A") {
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "a") {
         event.preventDefault();
+        console.log("🔐 Admin panel shortcut triggered");
         setShowLoginPanel(true);
       }
     };
@@ -398,6 +400,11 @@ export default function Index() {
               <MobileOptimizedEventsSection />
             </section>
 
+            {/* Flagship Conclave Sessions */}
+            <section id="conclave">
+              <FlagshipConclaveSection />
+            </section>
+
             {/* Insights Section */}
             <section id="insights">
               <OptimizedFinsightSection />
@@ -447,6 +454,17 @@ export default function Index() {
                   <div className="text-finance-cyan/60 text-sm professional-text">
                     © 2024 The Finance Symposium. All rights reserved. |
                     Designed with ❤️ by Dhruv Moghe
+                  </div>
+
+                  {/* Admin Access Button */}
+                  <div className="mt-6 pt-4 border-t border-finance-cyan/20 flex justify-center">
+                    <button
+                      onClick={() => setShowLoginPanel(true)}
+                      className="px-3 py-1.5 text-xs text-finance-cyan/50 hover:text-finance-cyan/80 rounded border border-finance-cyan/20 hover:border-finance-cyan/50 transition-all duration-200 hover:bg-finance-cyan/5"
+                      title="Admin Access"
+                    >
+                      ⚙️ Admin
+                    </button>
                   </div>
                 </div>
               </div>

@@ -19,6 +19,10 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import {
+  useFinsightMagazines,
+  Magazine as SavedMagazine,
+} from "../hooks/useFinsightMagazines";
 
 interface Magazine {
   id: string;
@@ -33,10 +37,11 @@ interface Magazine {
   readTime: string;
   categories: string[];
   highlights: string[];
+  link?: string;
 }
 
-// Sample magazine data
-const magazines: Magazine[] = [
+// Default magazine data
+const defaultMagazines: Magazine[] = [
   {
     id: "vol-1",
     title: "Finsight Magazine Vol. 1",
@@ -66,8 +71,21 @@ export default function OptimizedFinsightSection() {
     null,
   );
 
+  const { magazines: savedMagazines } = useFinsightMagazines();
+
+  // Combine saved magazines with default magazines, mark first saved as featured if it exists
+  const allMagazines: Magazine[] =
+    savedMagazines.length > 0
+      ? savedMagazines.map((mag, idx) => ({
+          ...mag,
+          date: new Date().getFullYear().toString(),
+          coverImage: mag.cover,
+          featured: idx === 0,
+        }))
+      : defaultMagazines;
+
   const featuredMagazine =
-    magazines.find((mag) => mag.featured) || magazines[0];
+    allMagazines.find((mag) => mag.featured) || allMagazines[0];
 
   const MagazineCard = ({
     magazine,
@@ -83,12 +101,11 @@ export default function OptimizedFinsightSection() {
         className={`relative ${featured ? "w-full max-w-sm mx-auto" : "w-64"} cursor-pointer group`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={() =>
-          window.open(
-            "https://heyzine.com/flip-book/3f3a9a2239.html#page/1",
-            "_blank",
-          )
-        }
+        onClick={() => {
+          if (magazine.link) {
+            window.open(magazine.link, "_blank");
+          }
+        }}
         whileHover={{ scale: 1.02 }}
         transition={{ duration: 0.2 }}
       >
@@ -303,12 +320,11 @@ export default function OptimizedFinsightSection() {
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105"
-                onClick={() =>
-                  window.open(
-                    "https://heyzine.com/flip-book/3f3a9a2239.html#page/1",
-                    "_blank",
-                  )
-                }
+                onClick={() => {
+                  if (featuredMagazine.link) {
+                    window.open(featuredMagazine.link, "_blank");
+                  }
+                }}
               >
                 <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Read Magazine

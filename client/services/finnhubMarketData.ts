@@ -11,41 +11,52 @@ class FinnhubMarketDataService {
 
     // Set up global error handler for fetch failures
     if (typeof window !== "undefined") {
-      window.addEventListener("unhandledrejection", (event) => {
-        if (
-          event.reason?.message?.includes("Failed to fetch") ||
-          event.reason?.message?.includes("fetch") ||
-          event.reason?.message?.includes("market-data") ||
-          event.reason?.name === "TypeError" ||
-          event.reason?.name === "AbortError"
-        ) {
-          console.warn(
-            "🔄 Global market data error detected, incrementing failure count:",
-            event.reason?.message || "Unknown error",
-          );
-          this.apiFailureCount++;
-          if (this.apiFailureCount >= 5) {
-            this.fallbackMode = true;
-            console.log("🔄 Enabling fallback mode after multiple failures");
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        try {
+          if (
+            event.reason?.message?.includes("Failed to fetch") ||
+            event.reason?.message?.includes("fetch") ||
+            event.reason?.message?.includes("market-data") ||
+            event.reason?.name === "TypeError" ||
+            event.reason?.name === "AbortError"
+          ) {
+            console.warn(
+              "🔄 Global market data error detected:",
+              event.reason?.message || "Unknown error",
+            );
+            this.apiFailureCount++;
+            if (this.apiFailureCount >= 5) {
+              this.fallbackMode = true;
+              console.log("🔄 Enabling fallback mode after multiple failures");
+            }
+            event.preventDefault(); // Prevent error from bubbling up
           }
-          event.preventDefault(); // Prevent error from bubbling up
+        } catch (handlerError) {
+          console.warn("📊 Error in unhandled rejection handler:", handlerError);
         }
-      });
+      };
 
-      // Also handle general errors
-      window.addEventListener("error", (event) => {
-        if (
-          event.message?.includes("market-data") ||
-          event.message?.includes("finnhub")
-        ) {
-          console.warn(
-            "🔄 Global script error related to market data, enabling fallback mode",
-          );
-          this.fallbackMode = true;
-          this.apiFailureCount = 999;
-          event.preventDefault();
+      const handleError = (event: ErrorEvent) => {
+        try {
+          if (
+            event.message?.includes("market-data") ||
+            event.message?.includes("finnhub") ||
+            event.message?.includes("Failed to fetch")
+          ) {
+            console.warn(
+              "🔄 Global error related to market data, enabling fallback mode",
+            );
+            this.fallbackMode = true;
+            this.apiFailureCount = 999;
+            event.preventDefault();
+          }
+        } catch (handlerError) {
+          console.warn("📊 Error in error handler:", handlerError);
         }
-      });
+      };
+
+      window.addEventListener("unhandledrejection", handleUnhandledRejection as EventListener);
+      window.addEventListener("error", handleError);
     }
   }
 
@@ -147,6 +158,12 @@ class FinnhubMarketDataService {
     try {
       console.log("📊 Fetching enhanced market data from server...");
 
+      // If already in fallback mode from previous failures, skip server attempt
+      if (this.fallbackMode && this.apiFailureCount >= 5) {
+        console.log("🔄 Already in persistent fallback mode, using cached data");
+        return this.getFallbackMarketData();
+      }
+
       // Environment validation with better error handling
       try {
         if (typeof fetch === "undefined" || typeof window === "undefined") {
@@ -212,7 +229,7 @@ class FinnhubMarketDataService {
       const requestStartTime = Date.now();
 
       try {
-        fetchWithTimeout = new Promise<Response>((resolve, reject) => {
+        fetchWithTimeout = new Promise<Response>((resolve) => {
           try {
             const controller = new AbortController();
 
@@ -286,98 +303,110 @@ class FinnhubMarketDataService {
                 credentials: "same-origin" as RequestCredentials,
               };
 
-              fetch("/api/market-data", fetchOptions)
-                .then((response) => {
-                  try {
-                    clearTimeout(timeoutId);
-                    const responseTime = Date.now() - requestStartTime;
+              try {
+                fetch("/api/market-data", fetchOptions)
+                  .then((response) => {
+                    try {
+                      clearTimeout(timeoutId);
+                      const responseTime = Date.now() - requestStartTime;
 
-                    if (response.ok) {
-                      console.log(
-                        `✅ Server response received in ${responseTime}ms`,
-                      );
-                      // Reset failure count on successful response
-                      this.apiFailureCount = Math.max(
-                        0,
-                        this.apiFailureCount - 1,
-                      );
-                      resolve(response);
-                    } else {
+                      if (response.ok) {
+                        console.log(
+                          `✅ Server response received in ${responseTime}ms`,
+                        );
+                        this.apiFailureCount = Math.max(
+                          0,
+                          this.apiFailureCount - 1,
+                        );
+                        resolve(response);
+                      } else {
+                        console.warn(
+                          `⚠️ Server returned ${response.status}: ${response.statusText}`,
+                        );
+                        this.apiFailureCount++;
+
+                        if (response.status >= 400 && response.status < 500) {
+                          resolve(
+                            new Response(
+                              JSON.stringify({
+                                fallback: true,
+                                reason: "client-error",
+                                status: response.status,
+                              }),
+                              {
+                                status: 200,
+                                headers: { "Content-Type": "application/json" },
+                              },
+                            ),
+                          );
+                        } else {
+                          resolve(response);
+                        }
+                      }
+                    } catch (responseError) {
                       console.warn(
-                        `⚠️ Server returned ${response.status}: ${response.statusText}`,
+                        "📊 Response processing error, using fallback:",
+                        responseError?.message || "Unknown response error",
                       );
                       this.apiFailureCount++;
-
-                      // For client errors (4xx), don't retry immediately
-                      if (response.status >= 400 && response.status < 500) {
-                        resolve(
-                          new Response(
-                            JSON.stringify({
-                              fallback: true,
-                              reason: "client-error",
-                              status: response.status,
-                            }),
-                            {
-                              status: 200,
-                              headers: { "Content-Type": "application/json" },
-                            },
-                          ),
-                        );
-                      } else {
-                        resolve(response); // Let the error handling logic deal with it
-                      }
+                      resolve(
+                        new Response(
+                          JSON.stringify({
+                            fallback: true,
+                            reason: "response-error",
+                          }),
+                          {
+                            status: 200,
+                            headers: { "Content-Type": "application/json" },
+                          },
+                        ),
+                      );
                     }
-                  } catch (responseError) {
-                    console.warn(
-                      "📊 Response processing error, using fallback:",
-                      responseError?.message || "Unknown response error",
-                    );
-                    this.apiFailureCount++;
-                    resolve(
-                      new Response(
-                        JSON.stringify({
-                          fallback: true,
-                          reason: "response-error",
-                        }),
-                        {
+                  })
+                  .catch((error) => {
+                    try {
+                      clearTimeout(timeoutId);
+                      console.warn(
+                        "📊 Network fetch failed, switching to fallback mode:",
+                        error?.message || "Unknown fetch error",
+                      );
+
+                      this.fallbackMode = true;
+                      this.apiFailureCount = 999;
+
+                      resolve(
+                        new Response(JSON.stringify({ fallback: true }), {
                           status: 200,
                           headers: { "Content-Type": "application/json" },
-                        },
-                      ),
-                    );
-                  }
-                })
-                .catch((error) => {
-                  try {
-                    clearTimeout(timeoutId);
-                    console.warn(
-                      "📊 Network fetch failed, switching to fallback mode:",
-                      error?.message || "Unknown fetch error",
-                    );
-
-                    // Immediately switch to fallback mode for any fetch error
-                    this.fallbackMode = true;
-                    this.apiFailureCount = 999; // Force permanent fallback
-
-                    // Create a special response that indicates fallback mode
-                    resolve(
-                      new Response(JSON.stringify({ fallback: true }), {
-                        status: 200,
-                        headers: { "Content-Type": "application/json" },
-                      }),
-                    );
-                  } catch (catchError) {
-                    console.warn(
-                      "📊 Error in catch handler, using ultimate fallback",
-                    );
-                    resolve(
-                      new Response(JSON.stringify({ fallback: true }), {
-                        status: 200,
-                        headers: { "Content-Type": "application/json" },
-                      }),
-                    );
-                  }
-                });
+                        }),
+                      );
+                    } catch (catchError) {
+                      console.warn(
+                        "📊 Error in catch handler, using ultimate fallback",
+                      );
+                      resolve(
+                        new Response(JSON.stringify({ fallback: true }), {
+                          status: 200,
+                          headers: { "Content-Type": "application/json" },
+                        }),
+                      );
+                    }
+                  });
+              } catch (fetchInitError) {
+                clearTimeout(timeoutId);
+                console.warn(
+                  "📊 Fetch initialization error, using fallback:",
+                  fetchInitError?.message || "Unknown error",
+                );
+                this.fallbackMode = true;
+                this.apiFailureCount = 999;
+                resolve(
+                  new Response(JSON.stringify({ fallback: true }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                  }),
+                );
+              }
             } catch (fetchError) {
               try {
                 clearTimeout(timeoutId);
@@ -555,13 +584,29 @@ class FinnhubMarketDataService {
 
       // Immediately switch to fallback mode for any error
       this.fallbackMode = true;
-      this.apiFailureCount = 999; // Prevent further API attempts
+      this.apiFailureCount = 999;
 
       console.log(
         "📊 Switching to fallback mode immediately due to error:",
         errorMessage,
       );
-      return this.getFallbackMarketData();
+
+      // Ensure we always return data, never throw
+      try {
+        return this.getFallbackMarketData();
+      } catch (fallbackError) {
+        console.warn("📊 Fallback data generation failed, returning minimal data");
+        return {
+          stocks: [],
+          sentiment: {
+            sentiment: "neutral",
+            advanceDeclineRatio: 0.5,
+            positiveStocks: 0,
+            totalStocks: 0,
+          },
+          currencies: [],
+        };
+      }
     }
   }
 
@@ -1025,7 +1070,10 @@ class FinnhubMarketDataService {
 
       // Initial fetch with small delay and better error handling
       setTimeout(() => {
-        this.safeInitialUpdate();
+        this.safeInitialUpdate().catch((error) => {
+          console.warn("📊 Initial update error caught at top level:", error?.message || "Unknown error");
+          // Error is already handled in safeInitialUpdate, this is just a safety net
+        });
       }, 200); // Slightly longer delay
     }
 
