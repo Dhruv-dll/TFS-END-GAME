@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 interface EventItem {
   title: string;
@@ -137,8 +137,15 @@ export function useEventsData() {
     }
   };
 
-  // Check if local data needs sync with server
+  const lastSaveTimeRef = useRef<number>(0);
+
+  // Check if local data needs sync with server (but not immediately after save)
   const checkServerSync = async () => {
+    // Skip sync check for 5 seconds after a save to prevent reverting user changes
+    if (Date.now() - lastSaveTimeRef.current < 5000) {
+      return;
+    }
+
     try {
       const localLastModified = eventsConfig.lastModified || 0;
       const controller = new AbortController();
@@ -277,60 +284,47 @@ export function useEventsData() {
       // Add timestamp
       newConfig.lastModified = Date.now();
 
-      // Update local state immediately
-      setEventsConfig(newConfig);
-
-      // Sync with server with proper error handling
+      // Sync with server FIRST, before updating local state
       try {
-        const fetchWithTimeout = new Promise<Response>((resolve, reject) => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => {
-            controller.abort();
-            reject(new Error("Save request timeout"));
-          }, 10000);
-
-          fetch("/api/events", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({ data: newConfig }),
-            signal: controller.signal,
-          })
-            .then((response) => {
-              clearTimeout(timeoutId);
-              resolve(response);
-            })
-            .catch((error) => {
-              clearTimeout(timeoutId);
-              reject(error);
-            });
+        const response = await fetch("/api/events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ data: newConfig }),
         });
 
-        const response = await fetchWithTimeout;
-        if (response.ok) {
-          console.log("Events data synced with server successfully");
-        } else {
-          console.warn(
-            "Failed to sync events data with server - response not ok",
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Failed to save events to server",
           );
         }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || "Server returned failure response");
+        }
+
+        // Only update local state after successful server save
+        setEventsConfig(newConfig);
+        lastSaveTimeRef.current = Date.now();
+        console.log("✅ Events data saved successfully to server");
       } catch (syncError) {
-        console.warn(
-          "Failed to sync events data with server:",
-          syncError?.message || "Unknown sync error",
+        console.error(
+          "❌ Failed to save events to server:",
+          syncError?.message || "Unknown error",
         );
+        throw syncError;
       }
 
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent("tfs-events-updated"));
     } catch (error) {
       console.error("Error saving events config:", error);
-      // Still update local state even if server sync fails
-      setEventsConfig(newConfig);
-      localStorage.setItem("tfs-events-config", JSON.stringify(newConfig));
-      window.dispatchEvent(new CustomEvent("tfs-events-updated"));
+      // Don't update local state if save failed
+      throw error;
     }
   };
 

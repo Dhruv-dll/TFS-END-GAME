@@ -18,6 +18,16 @@ import {
   updateLuminariesData,
   checkLuminariesSync,
 } from "./routes/luminariesData";
+import {
+  getSessionsData,
+  updateSessionsData,
+  checkSessionsSync,
+} from "./routes/conclaveSessionsData";
+import {
+  getMagazinesData,
+  updateMagazinesData,
+  checkMagazinesSync,
+} from "./routes/finsightMagazinesData";
 
 export function createServer() {
   const app = express();
@@ -50,6 +60,16 @@ export function createServer() {
   app.get("/api/luminaries", getLuminariesData);
   app.post("/api/luminaries", updateLuminariesData);
   app.get("/api/luminaries/sync", checkLuminariesSync);
+
+  // Conclave Sessions API endpoints
+  app.get("/api/sessions", getSessionsData);
+  app.post("/api/sessions", updateSessionsData);
+  app.get("/api/sessions/sync", checkSessionsSync);
+
+  // Finsight Magazines API endpoints
+  app.get("/api/magazines", getMagazinesData);
+  app.post("/api/magazines", updateMagazinesData);
+  app.get("/api/magazines/sync", checkMagazinesSync);
 
   return app;
 }

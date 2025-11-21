@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export interface TeamMember {
   id: string;
@@ -221,8 +221,7 @@ const defaultConfig: LuminariesConfig = {
 export function useLuminariesData() {
   const [config, setConfig] = useState<LuminariesConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
-
-  // Prefer server as single source of truth; remove localStorage usage
+  const lastSaveTimeRef = useRef<number>(0);
 
   const fetchWithTimeout = async (
     input: RequestInfo,
@@ -261,6 +260,11 @@ export function useLuminariesData() {
   };
 
   const checkSync = async () => {
+    // Skip sync check for 5 seconds after a save
+    if (Date.now() - lastSaveTimeRef.current < 5000) {
+      return;
+    }
+
     try {
       const localLast = config.lastModified || 0;
       const res = await fetchWithTimeout(
@@ -274,7 +278,9 @@ export function useLuminariesData() {
           await loadFromServer();
         }
       }
-    } catch {}
+    } catch {
+      // silent
+    }
   };
 
   useEffect(() => {
@@ -291,9 +297,9 @@ export function useLuminariesData() {
 
   const saveConfig = async (next: LuminariesConfig) => {
     next.lastModified = Date.now();
-    setConfig(next);
+
     try {
-      await fetchWithTimeout(
+      const res = await fetchWithTimeout(
         "/api/luminaries",
         {
           method: "POST",
@@ -305,67 +311,69 @@ export function useLuminariesData() {
         },
         10000,
       );
-    } catch {}
-    window.dispatchEvent(new CustomEvent("tfs-luminaries-updated"));
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(
+          errorData.message || "Failed to save luminaries to server",
+        );
+      }
+
+      const result = await res.json();
+      if (!result.success) {
+        throw new Error(result.error || "Server returned failure response");
+      }
+
+      // Only update state after successful save
+      setConfig(next);
+      lastSaveTimeRef.current = Date.now();
+      console.log("✅ Luminaries saved to server successfully");
+      window.dispatchEvent(new CustomEvent("tfs-luminaries-updated"));
+    } catch (error) {
+      console.error("❌ Failed to save luminaries:", error?.message);
+      throw error;
+    }
   };
 
-  useEffect(() => {
-    const onCustom = () => loadFromServer();
-    window.addEventListener(
-      "tfs-luminaries-updated",
-      onCustom as EventListener,
-    );
-    return () =>
-      window.removeEventListener(
-        "tfs-luminaries-updated",
-        onCustom as EventListener,
-      );
-  }, []);
-
-  const faculty = useMemo(() => config.faculty, [config.faculty]);
-  const leadership = useMemo(() => config.leadership, [config.leadership]);
-
-  const addMember = async (group: "faculty" | "leadership", m: TeamMember) => {
-    const member = {
-      ...m,
-      isLeadership: group === "leadership" ? true : m.isLeadership,
-    };
+  const addMember = async (
+    group: "faculty" | "leadership",
+    member: TeamMember,
+  ) => {
     const next: LuminariesConfig = {
       ...config,
       [group]: [...config[group], member],
-    } as LuminariesConfig;
+    };
     await saveConfig(next);
   };
 
   const updateMember = async (
     group: "faculty" | "leadership",
     id: string,
-    patch: Partial<TeamMember>,
+    updates: Partial<TeamMember>,
   ) => {
     const next: LuminariesConfig = {
       ...config,
-      [group]: config[group].map((tm) =>
-        tm.id === id ? { ...tm, ...patch } : tm,
+      [group]: config[group].map((m) =>
+        m.id === id ? { ...m, ...updates } : m,
       ),
-    } as LuminariesConfig;
+    };
     await saveConfig(next);
   };
 
   const removeMember = async (group: "faculty" | "leadership", id: string) => {
     const next: LuminariesConfig = {
       ...config,
-      [group]: config[group].filter((tm) => tm.id !== id),
-    } as LuminariesConfig;
+      [group]: config[group].filter((m) => m.id !== id),
+    };
     await saveConfig(next);
   };
 
   return {
+    faculty: config.faculty,
+    leadership: config.leadership,
     loading,
-    faculty,
-    leadership,
     addMember,
     updateMember,
     removeMember,
-    rawConfig: config,
   };
 }

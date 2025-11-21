@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 
 export interface SponsorItem {
   id: string;
@@ -7,7 +7,7 @@ export interface SponsorItem {
   industry: string;
   description: string;
   website?: string;
-  isActive: boolean; // true = current, false = past
+  isActive: boolean;
 }
 
 interface SponsorsConfig {
@@ -64,8 +64,7 @@ const defaultSponsors: SponsorsConfig = {
 export function useSponsorsData() {
   const [config, setConfig] = useState<SponsorsConfig>(defaultSponsors);
   const [loading, setLoading] = useState(true);
-
-  // Prefer server as single source of truth; remove localStorage usage
+  const lastSaveTimeRef = useRef<number>(0);
 
   const fetchWithTimeout = async (
     input: RequestInfo,
@@ -104,6 +103,11 @@ export function useSponsorsData() {
   };
 
   const checkSync = async () => {
+    // Skip sync check for 5 seconds after a save
+    if (Date.now() - lastSaveTimeRef.current < 5000) {
+      return;
+    }
+
     try {
       const localLast = config.lastModified || 0;
       const res = await fetchWithTimeout(
@@ -134,12 +138,11 @@ export function useSponsorsData() {
     return () => clearInterval(id);
   }, []);
 
-  // Save and sync
   const saveConfig = async (next: SponsorsConfig) => {
     next.lastModified = Date.now();
-    setConfig(next);
+
     try {
-      await fetchWithTimeout(
+      const res = await fetchWithTimeout(
         "/api/sponsors",
         {
           method: "POST",
@@ -151,53 +154,63 @@ export function useSponsorsData() {
         },
         10000,
       );
-    } catch {
-      // ignore sync errors
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(
+          errorData.message || "Failed to save sponsors to server",
+        );
+      }
+
+      const result = await res.json();
+      if (!result.success) {
+        throw new Error(result.error || "Server returned failure response");
+      }
+
+      // Only update state after successful save
+      setConfig(next);
+      lastSaveTimeRef.current = Date.now();
+      console.log("✅ Sponsors saved to server successfully");
+      window.dispatchEvent(new CustomEvent("tfs-sponsors-updated"));
+    } catch (error) {
+      console.error("❌ Failed to save sponsors:", error?.message);
+      throw error;
     }
-    window.dispatchEvent(new CustomEvent("tfs-sponsors-updated"));
   };
 
-  useEffect(() => {
-    const onCustom = () => loadFromServer();
-    window.addEventListener("tfs-sponsors-updated", onCustom as EventListener);
-    return () =>
-      window.removeEventListener(
-        "tfs-sponsors-updated",
-        onCustom as EventListener,
-      );
-  }, []);
-
-  const sponsors = useMemo(() => config.sponsors, [config.sponsors]);
-
-  const addSponsor = async (s: SponsorItem) => {
-    const next = { ...config, sponsors: [...config.sponsors, s] };
+  const addSponsor = async (sponsor: SponsorItem) => {
+    const next: SponsorsConfig = {
+      ...config,
+      sponsors: [...config.sponsors, sponsor],
+    };
     await saveConfig(next);
   };
 
-  const updateSponsor = async (id: string, patch: Partial<SponsorItem>) => {
-    const next = {
+  const updateSponsor = async (id: string, updates: Partial<SponsorItem>) => {
+    const next: SponsorsConfig = {
       ...config,
-      sponsors: config.sponsors.map((sp) =>
-        sp.id === id ? { ...sp, ...patch } : sp,
+      sponsors: config.sponsors.map((s) =>
+        s.id === id ? { ...s, ...updates } : s,
       ),
     };
     await saveConfig(next);
   };
 
   const removeSponsor = async (id: string) => {
-    const next = {
+    const next: SponsorsConfig = {
       ...config,
-      sponsors: config.sponsors.filter((sp) => sp.id !== id),
+      sponsors: config.sponsors.filter((s) => s.id !== id),
     };
     await saveConfig(next);
   };
 
+  const sponsors = useMemo(() => config.sponsors, [config.sponsors]);
+
   return {
-    loading,
     sponsors,
+    loading,
     addSponsor,
     updateSponsor,
     removeSponsor,
-    rawConfig: config,
   };
 }
